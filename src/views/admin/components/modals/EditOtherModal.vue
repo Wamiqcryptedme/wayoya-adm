@@ -231,13 +231,35 @@ const form = reactive({
 // Initialize form
 const initForm = () => {
   // Commission rates
-  form.commission_rates = JSON.parse(JSON.stringify(props.supplier.commission_rates || {}));
+  const rates = props.supplier.commission_rates || {};
   
-  // Set main commission for non-tour-operators
-  if (props.supplier.supplier_type !== 'tour_operator') {
+  if (props.supplier.supplier_type === 'tour_operator') {
+    form.commission_rates = {
+      tours: rates.tours || 0,
+      treks: rates.treks || 0
+    };
+  } else {
+    // For non-tour-operators, find the right commission key
     const type = props.supplier.supplier_type;
-    form.commission_rates.main = form.commission_rates[type] || form.commission_rates[type + 's'] || 0;
+    let mainCommission = 0;
+    
+    // Try different possible keys
+    if (type === 'stay') {
+      mainCommission = rates.rooms || rates.stay || 0;
+    } else if (type === 'activity_provider') {
+      mainCommission = rates.activity || rates.activities || 0;
+    } else if (type === 'rental') {
+      mainCommission = rates.rental || rates.rentals || 0;
+    } else if (type === 'tour_guide') {
+      mainCommission = rates.experiences || rates.tour_guide || 0;
+    }
+    
+    form.commission_rates.main = mainCommission;
   }
+  
+  console.log('Commission rates loaded:', form.commission_rates);
+  
+  // ... rest of initForm
   
   // Details
   form.details = JSON.parse(JSON.stringify(props.supplier.details || {}));
@@ -294,4 +316,5 @@ const handleSave = () => {
 watch(() => props.supplier, () => {
   initForm();
 }, { immediate: true });
+
 </script>
